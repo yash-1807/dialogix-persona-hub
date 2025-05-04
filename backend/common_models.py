@@ -1,6 +1,5 @@
-
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 class Message(BaseModel):
     sender: str  # "user" or "ai"
@@ -14,3 +13,14 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
+
+class NLPAnalysisRequest(BaseModel):
+    text: str
+    document: Optional[str] = None
+
+class NLPAnalysisResponse(BaseModel):
+    sentiment: Dict[str, float]
+    entities: List[Dict[str, Any]]
+    intents: Dict[str, float]
+    document_summary: Optional[str] = None
+    document_entities: Optional[List[Dict[str, Any]]] = None

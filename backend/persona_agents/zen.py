@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, HTTPException
 from crewai import Agent, Task, Crew, LLM
 from ..common_models import ChatRequest, ChatResponse, Message
@@ -50,6 +49,16 @@ async def chat_with_zen(request: ChatRequest):
     try:
         crew = Crew(agents=[zen_agent], tasks=[zen_task])
         result = crew.kickoff()
-        return {"response": result}
+        
+        # Fix: Extract the raw text from the CrewOutput object
+        if hasattr(result, 'raw'):
+            # If result is a CrewOutput object
+            return {"response": result.raw}
+        elif hasattr(result, 'tasks_output') and result.tasks_output:
+            # If result has tasks_output list with content
+            return {"response": result.tasks_output[0].raw}
+        else:
+            # Convert whatever was returned to a string
+            return {"response": str(result)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

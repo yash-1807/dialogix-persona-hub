@@ -1,12 +1,18 @@
-
 from fastapi import APIRouter, HTTPException
 from crewai import Agent, Task, Crew, LLM
-from ..common_models import ChatRequest, ChatResponse, Message
+from backend.common_models import ChatRequest, ChatResponse, Message
+import os
 
 router = APIRouter()
 
-# Initialize the LLM
-llm = LLM(model="gemini/gemini-2.0-flash-exp", temperature=0.7)
+# Initialize the LLM with API key from environment
+api_key = os.environ.get("GOOGLE_API_KEY")
+if not api_key:
+    raise ValueError("GOOGLE_API_KEY environment variable not set")
+
+# Initialize the LLM with a valid model name
+llm = LLM(model="gemini/gemini-1.5-pro", api_key=api_key, temperature=0.7)
+# Alternative models to try: "gemini/gemini-pro" or "gemini/gemini-1.0-pro"
 
 # Create the Captain Grumblebeard agent
 captain_agent = Agent(
@@ -50,6 +56,16 @@ async def chat_with_captain(request: ChatRequest):
     try:
         crew = Crew(agents=[captain_agent], tasks=[captain_task])
         result = crew.kickoff()
-        return {"response": result}
+        
+        # Fix: Extract the raw text from the CrewOutput object
+        if hasattr(result, 'raw'):
+            # If result is a CrewOutput object
+            return {"response": result.raw}
+        elif hasattr(result, 'tasks_output') and result.tasks_output:
+            # If result has tasks_output list with content
+            return {"response": result.tasks_output[0].raw}
+        else:
+            # Convert whatever was returned to a string
+            return {"response": str(result)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
